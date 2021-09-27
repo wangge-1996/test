@@ -1,0 +1,221 @@
+function  [m1,m2,m3]=newgetpng(str,goal,angle,loc)
+str1=['D:\2020_6_16\pdb\',loc,'\'];
+str_final=strcat(str1,str);
+%feature_num=0;
+pdb= pdbread(str_final);
+%web.charged:ARG LYS ASP GLU
+%web.polar:GLN ASN HIS SER THR TYR CYS MET TRP
+%web.Hydrophobic:ALA LLE LUE PHE VAL PRO GLY
+%soluable.Hydrophobic:TYR TRP ALA LLE LUE PHE VAL PRO GLY
+%soluable.Moderate:CYS MET
+%soluable.Hydrophillic:ARG LYS ASP GLU GLN ASN SER THR
+%soluable.polar:GLN ASN SER THR CYS MET
+%soluable.Aromatic:TYR TRP PHE
+%soluable.Aliphatic:ALA LLE LUE VAL
+%soluable.Acidic:ASP GLU
+%soluable.Basic:ARG LYS HIS
+%soluable.Negative:ASP GLU
+%soluable.Neutral:GLN ASN SER THR TYR CYS MET TRP ALA LLE LUE PHE VAL PRO GLY
+%soluable.Positive:ARG LYS HIS
+%Pka_COOH:LYS MET TRP ALA LUE PHE VAL GLY
+%Pka_NH2:LYS GLU CYS LLE PRO
+
+
+if length(pdb.Model)==1
+    %flag=1;
+    n=length(pdb.Model.Atom);
+end
+
+if length(pdb.Model)>1
+    %flag=1;
+    n=length(pdb.Model(1,1).Atom);
+end
+
+
+x=zeros(1,n-1);
+y=zeros(1,n-1);
+z=zeros(1,n-1);
+x0=0;
+y0=0;
+z0=0;
+if length(pdb.Model)==1
+    n=length(pdb.Model.Atom);
+    for i=1:n-1
+        x(i)=pdb.Model.Atom(1,i).X;
+        x0=x0+pdb.Model.Atom(1,i).X;
+        y(i)=pdb.Model.Atom(1,i).Y;
+        y0=y0+pdb.Model.Atom(1,i).Y;
+        z(i)=pdb.Model.Atom(1,i).Z;
+        z0=z0+pdb.Model.Atom(1,i).Z;
+    end
+end
+
+if length(pdb.Model)>1
+    n=length(pdb.Model(1,1).Atom);
+    for i=1:n-1
+        x(i)=pdb.Model(1,1).Atom(1,i).X;
+        x0=x0+pdb.Model(1,1).Atom(1,i).X;
+        y(i)=pdb.Model(1,1).Atom(1,i).Y;
+        y0=y0+pdb.Model(1,1).Atom(1,i).Y;
+        z(i)=pdb.Model(1,1).Atom(1,i).Z;
+        z0=z0+pdb.Model(1,1).Atom(1,i).Z;
+    end
+end
+%calculate center of gravity
+x0=x0/(n-1);
+y0=y0/(n-1);
+z0=z0/(n-1);
+
+
+%Transform coordinates
+for i=1:n-1
+    x(i)=x(i)-x0;
+    y(i)=y(i)-y0;
+    z(i)=z(i)-z0;
+end
+
+
+
+
+if length(pdb.Model)==1
+    %flag=1;
+    n=length(pdb.Model.Atom);
+    xf=zeros(1,n-1);
+    yf=zeros(1,n-1);
+    zf=zeros(1,n-1);
+    for i=1:n-1
+        if(strcmp(pdb.Model.Atom(1,i).AtomName,'CA')==1)
+            %           if( isempty(strfind(goal,pdb.Model.Atom(1,i).resName)==0))
+            if(isempty(strfind(goal,pdb.Model.Atom(1,i).resName))==0)
+                xf(i)=x(i)*cos(angle/180*pi)-y(i)*sin(angle/180*pi);
+                yf(i)=x(i)*sin(angle/180*pi)+y(i)*cos(angle/180*pi);
+                zf(i)=z(i);
+            end
+            %           end
+        end
+    end
+end
+if length(pdb.Model)>1
+    %flag=0;
+    n=length(pdb.Model(1,1).Atom);
+    xf=zeros(1,n-1);
+    yf=zeros(1,n-1);
+    zf=zeros(1,n-1);
+    for i=1:n-1
+        %        if(isempty(strcmp(pdb.Model(1,1).Atom(1,i).AtomName,'CA'))==0)
+        if(strcmp(pdb.Model(1,1).Atom(1,i).AtomName,'CA')==1)
+            if(isempty(strfind(goal,pdb.Model(1,1).Atom(1,i).resName)==0))
+                %                 if(strfind(goal,pdb.Model(1,1).Atom(1,i).resName)==1)
+                xf(i)=x(i)*cos(angle/180*pi)-y(i)*sin(angle/180*pi);
+                yf(i)=x(i)*sin(angle/180*pi)+y(i)*cos(angle/180*pi);
+                zf(i)=z(i);
+            end
+            %            end
+        end
+    end
+end
+
+
+
+
+
+%Cartesian coordinates converted to polar coordinates
+for i=1:n-1
+    [xf(i),yf(i),zf(i)]=cart2sph(xf(i),yf(i),zf(i));
+end
+
+for azimuth=1:360
+    for elevation=1:180
+        flag=0;
+        for i=n-1
+            if  (xf(i)>=(azimuth-181)*(pi/180))&&(xf(i)<=(azimuth-180)*(pi/180))&&(yf(i)>=(elevation-91)*(pi/180))&&(yf(i)<=(elevation-90)*(pi/180))
+                if flag==0
+                    max_loc=i;
+                else
+                    if zf(i)>zf(max_loc)
+                        xf(max_loc)=0;
+                        yf(max_loc)=0;
+                        zf(max_loc)=0;
+                        max_loc=i;
+                    else
+                        xf(i)=0;
+                        yf(i)=0;
+                        zf(i)=0;
+                    end
+                end
+            end
+        end
+        
+    end
+end
+
+for i=1:n-1
+    [xf(i),yf(i),zf(i)]=sph2cart(xf(i),yf(i),zf(i));
+end
+min_coordinate=min([min(xf) min(yf) min(zf)]);
+xf=xf-min_coordinate;
+yf=yf-min_coordinate;
+zf=zf-min_coordinate;
+
+% x_max=max(xf);
+% x_min=min(xf);
+% y_max=max(yf);
+% y_min=min(yf);
+% z_max=max(zf);
+% z_min=min(zf);
+% for i=1:n-1
+%
+%     xf(i)=(xf(i)-x_min)/(x_max-x_min);
+%
+%     yf(i)=(yf(i)-y_min)/(y_max-y_min);
+%
+%     zf(i)=(zf(i)-z_min)/(z_max-z_min);
+% end
+% xf=xf.*200;
+% yf=yf.*200;
+% zf=zf.*200;
+
+m1=zeros(200,200);
+for i=1:n-1
+    if zf(i)>=abs(min_coordinate)
+        for j=0:199
+            if j<xf(i) && xf(i)<=j+1
+                for k=0:199
+                    if k<yf(i) && yf(i)<=k+1
+                        m1(j+1,k+1)=1;
+                    end
+                end
+            end
+        end
+    end
+end
+
+m2=zeros(200,200);
+for i=1:n-1
+    if yf(i)>=abs(min_coordinate)
+        for j=0:199
+            if j<xf(i) && xf(i)<=j+1
+                for k=0:199
+                    if k<zf(i) && zf(i)<=k+1
+                        m2(j+1,k+1)=1;
+                    end
+                end
+            end
+        end
+    end
+end
+
+m3=zeros(200,200);
+for i=1:n-1
+    if xf(i)>=abs(min_coordinate)
+        for j=0:199
+            if j<yf(i) && yf(i)<=j+1
+                for k=0:199
+                    if k<zf(i) && zf(i)<=k+1
+                        m3(j+1,k+1)=1;
+                    end
+                end
+            end
+        end
+    end
+end
